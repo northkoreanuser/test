@@ -17,7 +17,9 @@
         button.action-btn:hover { background-color: #45a049; }
         button.danger-btn { background-color: #f44336; color: white; border: none; padding: 10px 15px; margin: 10px 2px; cursor: pointer; border-radius: 4px; }
         button.danger-btn:hover { background-color: #da190b; }
-        input[type="email"] { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; border: 2px solid #ccc; border-radius: 4px; }
+        input[type="email"], input[type="text"].hash-display { width: calc(100% - 100px); /* 복사 버튼 공간 확보 */ padding: 10px; margin: 8px 0; box-sizing: border-box; border: 2px solid #ccc; border-radius: 4px; display: inline-block; vertical-align: middle; }
+        button.copy-btn { background-color: #007bff; color: white; border: none; padding: 10px 15px; margin-left: 5px; cursor: pointer; border-radius: 4px; width: 90px; vertical-align: middle; }
+        button.copy-btn:hover { background-color: #0056b3; }
         .result-box { margin-top: 20px; padding: 15px; border-radius: 4px; background-color: #f8f8f8; }
         #hashLoading, #drawLoading { display: none; color: #4CAF50; margin: 10px 0; }
         .source-links, .file-links { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 0.9em; }
@@ -41,8 +43,7 @@
         <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
             * 모든 추첨 과정은 공개된 
             <a href="hash.txt" target="_blank">hash.txt</a> 
-            <span id="hashTxtCommitLink"></span>
-            파일 데이터를 기반으로 합니다.
+            <span id="hashTxtCommitLink_drawTab"></span> 파일 데이터를 기반으로 합니다.
             이 파일은 GitHub 커밋 이력을 통해 조작 불가능함을 보증합니다.
             **`test@test.com` 이메일은 시스템 시연을 위한 것으로, 실제 추첨 대상에서는 자동으로 제외됩니다.**
         </p>
@@ -52,10 +53,18 @@
         <input type="email" id="emailInput" value="test@test.com" placeholder="이메일을 입력하세요">
         <button class="action-btn" onclick="generateAndCheckHash()">내 이메일 해시 확인</button>
         <div id="hashLoading">해시 생성 및 확인 중...</div>
-        <div id="hashResult" class="result-box"></div>
+        <div id="hashResult" class="result-box">
+            <p><strong>입력된 이메일의 해시:</strong></p>
+            <div style="display: flex; align-items: center;">
+                <input type="text" id="userHashDisplay" class="hash-display" readonly>
+                <button class="copy-btn" onclick="copyToClipboard('userHashDisplay')">복사</button>
+            </div>
+            <p id="hashVerificationResult"></p>
+        </div>
         <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
             💡 이메일 해시를 생성한 후, 투명한 응모 기록을 위해 <br>
-            <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline; font-weight: bold;">hash.txt 파일</a>에서 직접 <span style="font-weight: bold; color: #e94560;">Ctrl+F (Mac: Cmd+F)</span>를 눌러 <br>
+            <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline; font-weight: bold;">hash.txt 파일</a>
+            <span id="hashTxtCommitLink_checkTab"></span> 에서 직접 <span style="font-weight: bold; color: #e94560;">Ctrl+F (Mac: Cmd+F)</span>를 눌러 <br>
             생성된 해시가 목록에 있는지 검색하여 확인해 볼 수 있습니다.
         </p>
     </div>
@@ -94,6 +103,20 @@
             document.cookie = name + '=; Max-Age=-99999999; path=/;';
         }
 
+        // 텍스트를 클립보드에 복사하는 함수
+        function copyToClipboard(elementId) {
+            const copyText = document.getElementById(elementId);
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); // 모바일용
+            try {
+                document.execCommand("copy");
+                alert("복사되었습니다: " + copyText.value);
+            } catch (err) {
+                console.error('클립보드 복사 실패:', err);
+                alert("복사에 실패했습니다. 수동으로 복사해주세요.");
+            }
+        }
+
         // --- 해시 및 추첨 로직 ---
 
         // SHA-512 해시 생성 함수
@@ -129,13 +152,16 @@
             }
 
             const loader = document.getElementById('hashLoading');
-            const resultDiv = document.getElementById('hashResult');
+            const userHashDisplay = document.getElementById('userHashDisplay');
+            const hashVerificationResult = document.getElementById('hashVerificationResult');
 
             loader.style.display = 'block';
-            resultDiv.innerHTML = '';
+            userHashDisplay.value = ''; // 기존 값 초기화
+            hashVerificationResult.innerHTML = ''; // 기존 값 초기화
 
             try {
                 const userHash = await generateSHA512(email);
+                userHashDisplay.value = userHash; // 해시 값을 입력 필드에 표시
 
                 const response = await fetch('hash.txt');
                 if (!response.ok) {
@@ -148,29 +174,34 @@
                     found = true;
                 }
 
-                resultDiv.innerHTML = `
-                    <p><strong>입력된 이메일의 해시:</strong> ${userHash}</p>
+                hashVerificationResult.innerHTML = `
                     <p style="color: ${found ? 'green' : 'red'}; font-weight: bold;">
                         ${found ? '✅ 귀하의 해시가 응모 목록에 있습니다.' : '❌ 귀하의 해시가 응모 목록에 없습니다.'}
                     </p>
                 `;
+                // 이메일 확인 결과 내 중첩된 hash.txt 링크 (없을 경우)
                 if (!found) {
-                    resultDiv.innerHTML += `
+                    hashVerificationResult.innerHTML += `
                         <p style="font-size: 0.95em; margin-top: 15px; color: #888;">
                             혹시 오타가 없는지 확인하거나, 모든 응모 기록이 담긴 <br>
-                            <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline; font-weight: bold;">hash.txt 파일</a>을 직접 열어 <br>
-                            <span style="font-weight: bold; color: #e94560;">Ctrl+F (Mac: Cmd+F)</span>로 생성된 해시를 검색하여 확인해 보세요.
+                            <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline; font-weight: bold;">hash.txt 파일</a>
+                            <span id="hashTxtCommitLink_checkTab_nested"></span> 에서 직접 <span style="font-weight: bold; color: #e94560;">Ctrl+F (Mac: Cmd+F)</span>를 눌러 <br>
+                            생성된 해시를 검색하여 확인해 보세요.
                         </p>
                     `;
                 } else {
-                     resultDiv.innerHTML += `
+                     hashVerificationResult.innerHTML += `
                         <p style="font-size: 0.85em; margin-top: 10px; color: #a0a0a0;">
-                            더 자세한 확인을 원하시면 <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline;">hash.txt 파일</a>을 열어 직접 검색할 수 있습니다.
+                            더 자세한 확인을 원하시면 <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline;">hash.txt 파일</a>
+                            <span id="hashTxtCommitLink_checkTab_nested_found"></span> 을 열어 직접 검색할 수 있습니다.
                         </p>
                     `;
                 }
+                // generateGitHubLinks를 다시 호출하여 동적 링크 업데이트
+                generateGitHubLinks(); 
             } catch (error) {
-                resultDiv.innerHTML = `<p style="color:red;">오류 발생: ${error.message}</p>`;
+                hashVerificationResult.innerHTML = `<p style="color:red;">오류 발생: ${error.message}</p>`;
+                userHashDisplay.value = '';
             } finally {
                 loader.style.display = 'none';
             }
@@ -215,11 +246,16 @@
                     isLoadedFromCookie = true;
                 }
 
+                // 결과 박스에 해시 입력 필드와 복사 버튼 추가
                 resultDiv.innerHTML = `
                     <p><strong>총 응모 해시 수:</strong> ${totalEligibleHashes}개</p>
                     <p style="font-size: 1.2em; color: #4CAF50; font-weight: bold;">
-                        ✨ 당첨 해시: ${winnerHash} ✨
+                        ✨ 당첨 해시:
                     </p>
+                    <div style="display: flex; align-items: center;">
+                        <input type="text" id="winnerHashDisplay" class="hash-display" value="${winnerHash}" readonly>
+                        <button class="copy-btn" onclick="copyToClipboard('winnerHashDisplay')">복사</button>
+                    </div>
                     <p style="margin-top: 15px;">
                         당첨되셨다면, 위 해시와 일치하는 이메일로 연락주세요: <strong style="color: #e94560;">winner@example.com</strong>
                     </p>
@@ -230,6 +266,8 @@
                 if (isLoadedFromCookie) {
                     resultDiv.innerHTML += '<p style="color: blue; font-size: 0.85em; margin-top: 10px;">(이전 추첨 결과가 쿠키에서 로드되었습니다.)</p>';
                 }
+                // generateGitHubLinks를 다시 호출하여 동적 링크 업데이트
+                generateGitHubLinks();
 
             } catch (error) {
                 resultDiv.innerHTML = `<p style="color:red;">${error.message}</p>`;
@@ -262,54 +300,91 @@
             
             let userName = '';
             let repoName = '';
+            let baseUrl = ''; // github.io 기반 URL
 
             // GitHub Pages 주소 (예: https://user.github.io/repo/index.html)
             if (urlParts[2] && urlParts[2].endsWith('.github.io')) {
                 userName = urlParts[2].split('.')[0];
-                repoName = urlParts[3] || userName; // user.github.io/ -> repoName = user, user.github.io/repo -> repoName = repo
+                // repoName은 urlParts[3]이 존재하는 경우, 아니면 userName과 동일
+                repoName = urlParts[3] || userName; 
+                baseUrl = `https://${userName}.github.io/${repoName}`;
+                // user.github.io/ 의 경우, repoName이 userName과 같고, baseUrl은 user.github.io
+                if (urlParts[3] === undefined || urlParts[3] === '') {
+                     baseUrl = `https://${userName}.github.io`;
+                }
             } 
             // GitHub 저장소 직접 접근 주소 (예: https://github.com/user/repo/blob/main/index.html)
             else if (urlParts[2] === 'github.com' && urlParts[3] && urlParts[4]) {
                 userName = urlParts[3];
                 repoName = urlParts[4];
+                // github.com 도메인에서는 raw.githubusercontent.com 링크를 사용
+                // 이 경우는 GitHub Pages Raw 링크는 유효하지 않으므로 생략
+                // baseUrl은 이 경우 사용되지 않음
             } else {
                 // 로컬 파일 등, GitHub Pages/Repo 형태가 아닌 경우 링크 생성 생략
                 const indexLinksDiv = document.getElementById('indexSourceLinks');
                 if (indexLinksDiv) {
                     indexLinksDiv.innerHTML = '로컬 환경 또는 비 GitHub Pages/Repo 주소에서는 소스코드 링크를 생성할 수 없습니다.';
                 }
-                const hashTxtCommitLinkDiv = document.getElementById('hashTxtCommitLink');
-                if (hashTxtCommitLinkDiv) {
-                     hashTxtCommitLinkDiv.innerHTML = ''; // hash.txt 옆 링크도 지움
-                }
+                // hash.txt 관련 링크들도 비활성화
+                const hashTxtCommitLinkDraw = document.getElementById('hashTxtCommitLink_drawTab');
+                if (hashTxtCommitLinkDraw) hashTxtCommitLinkDraw.innerHTML = '';
+                const hashTxtCommitLinkCheck = document.getElementById('hashTxtCommitLink_checkTab');
+                if (hashTxtCommitLinkCheck) hashTxtCommitLinkCheck.innerHTML = '';
+                const hashTxtCommitLinkCheckNested = document.getElementById('hashTxtCommitLink_checkTab_nested');
+                if (hashTxtCommitLinkCheckNested) hashTxtCommitLinkCheckNested.innerHTML = '';
+                const hashTxtCommitLinkCheckNestedFound = document.getElementById('hashTxtCommitLink_checkTab_nested_found');
+                if (hashTxtCommitLinkCheckNestedFound) hashTxtCommitLinkCheckNestedFound.innerHTML = '';
                 return;
             }
 
             const branch = 'main'; // 기본 브랜치 이름 (필요시 변경 가능)
-            const fileName = 'index.html';
+            const indexFileName = 'index.html';
             const hashTxtFileName = 'hash.txt';
 
             // --- index.html 관련 링크 ---
-            const githubViewLink = `https://github.com/${userName}/${repoName}/blob/${branch}/${fileName}`;
-            const githubRawLink = `https://github.io/${userName}/${repoName}/${fileName}`; // GitHub Pages 호스팅 기반 Raw 링크
-            const githubCommitLink = `https://github.com/${userName}/${repoName}/commits/${branch}/${fileName}`;
+            const githubViewLink = `https://github.com/${userName}/${repoName}/blob/${branch}/${indexFileName}`;
+            let githubRawLink = '';
+            if (baseUrl) { // GitHub Pages 호스팅인 경우에만 Raw 링크 생성
+                githubRawLink = `<a href="${baseUrl}/${indexFileName}" target="_blank">Raw 코드 직접 보기</a> |`;
+            }
+            const githubCommitLink = `https://github.com/${userName}/${repoName}/commits/${branch}/${indexFileName}`;
 
             const indexLinksDiv = document.getElementById('indexSourceLinks');
             if (indexLinksDiv) {
                 indexLinksDiv.innerHTML = `
                     <a href="${githubViewLink}" target="_blank">GitHub에서 보기</a> |
-                    <a href="${githubRawLink}" target="_blank">Raw 코드 직접 보기</a> |
+                    ${githubRawLink} 
                     <a href="${githubCommitLink}" target="_blank">수정 이력 확인</a>
                 `;
             }
 
             // --- hash.txt 관련 링크 ---
             const hashTxtCommitLink = `https://github.com/${userName}/${repoName}/commits/${branch}/${hashTxtFileName}`;
-            const hashTxtCommitLinkDiv = document.getElementById('hashTxtCommitLink');
-            if (hashTxtCommitLinkDiv) {
-                hashTxtCommitLinkDiv.innerHTML = `
-                    (<a href="${hashTxtCommitLink}" target="_blank">수정 이력 확인</a>)
-                `;
+            const hashTxtCommitLinkHtml = `(<a href="${hashTxtCommitLink}" target="_blank">수정 이력 확인</a>)`;
+            
+            // 당첨자 확인 탭의 hash.txt 옆 링크
+            const hashTxtCommitLinkDraw = document.getElementById('hashTxtCommitLink_drawTab');
+            if (hashTxtCommitLinkDraw) {
+                hashTxtCommitLinkDraw.innerHTML = hashTxtCommitLinkHtml;
+            }
+
+            // 이메일 확인 탭의 hash.txt 옆 링크 (메인 설명)
+            const hashTxtCommitLinkCheck = document.getElementById('hashTxtCommitLink_checkTab');
+            if (hashTxtCommitLinkCheck) {
+                hashTxtCommitLinkCheck.innerHTML = hashTxtCommitLinkHtml;
+            }
+
+            // 이메일 확인 결과 내 중첩된 hash.txt 링크 (없을 경우)
+            const hashTxtCommitLinkCheckNested = document.getElementById('hashTxtCommitLink_checkTab_nested');
+            if (hashTxtCommitLinkCheckNested) {
+                hashTxtCommitLinkCheckNested.innerHTML = hashTxtCommitLinkHtml;
+            }
+
+            // 이메일 확인 결과 내 중첩된 hash.txt 링크 (있을 경우)
+            const hashTxtCommitLinkCheckNestedFound = document.getElementById('hashTxtCommitLink_checkTab_nested_found');
+            if (hashTxtCommitLinkCheckNestedFound) {
+                hashTxtCommitLinkCheckNestedFound.innerHTML = hashTxtCommitLinkHtml;
             }
         }
 
