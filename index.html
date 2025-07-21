@@ -20,9 +20,9 @@
         input[type="email"] { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; border: 2px solid #ccc; border-radius: 4px; }
         .result-box { margin-top: 20px; padding: 15px; border-radius: 4px; background-color: #f8f8f8; }
         #hashLoading, #drawLoading { display: none; color: #4CAF50; margin: 10px 0; }
-        .source-links { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 0.9em; }
-        .source-links a { color: #0366d6; text-decoration: none; margin: 0 10px; }
-        .source-links a:hover { text-decoration: underline; }
+        .source-links, .file-links { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 0.9em; }
+        .source-links a, .file-links a { color: #0366d6; text-decoration: none; margin: 0 5px; } /* 간격 조정 */
+        .source-links a:hover, .file-links a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -39,7 +39,10 @@
         <div id="drawLoading">추첨 진행 중...</div>
         <div id="result" class="result-box"></div>
         <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
-            * 모든 추첨 과정은 공개된 <a href="hash.txt" target="_blank">hash.txt</a> 파일 데이터를 기반으로 합니다.
+            * 모든 추첨 과정은 공개된 
+            <a href="hash.txt" target="_blank">hash.txt</a> 
+            <span id="hashTxtCommitLink"></span>
+            파일 데이터를 기반으로 합니다.
             이 파일은 GitHub 커밋 이력을 통해 조작 불가능함을 보증합니다.
             **`test@test.com` 이메일은 시스템 시연을 위한 것으로, 실제 추첨 대상에서는 자동으로 제외됩니다.**
         </p>
@@ -60,7 +63,7 @@
     <div class="source-links">
         <p>
             이 페이지의 소스코드 투명성을 확인하세요:
-            <span id="githubSourceLinks"></span>
+            <span id="indexSourceLinks"></span>
         </p>
     </div>
 
@@ -252,48 +255,69 @@
             evt.currentTarget.classList.add('active');
         }
 
-        // GitHub 소스코드 링크 생성 함수
-        function generateGitHubSourceLinks() {
+        // GitHub 소스코드 및 파일 이력 링크 생성 함수
+        function generateGitHubLinks() {
             const currentUrl = window.location.href;
-            // 예시 URL: https://githubkorean.github.io/html/index.html
             const urlParts = currentUrl.split('/');
-            // githubkorean.github.io 에서 'githubkorean' 추출
-            const userName = urlParts[2].split('.')[0]; 
-            // html/index.html 에서 'html' 추출 (GitHub Pages 프로젝트 이름)
-            // 주의: user.github.io 형태일 경우 이 부분이 달라질 수 있으므로, 
-            // 경로에서 두 번째 부분을 찾아서 사용 (repo 이름)
+            
+            let userName = '';
             let repoName = '';
-            for (let i = 3; i < urlParts.length; i++) {
-                if (urlParts[i] && urlParts[i] !== 'index.html') {
-                    repoName = urlParts[i];
-                    break;
+
+            // GitHub Pages 주소 (예: https://user.github.io/repo/index.html)
+            if (urlParts[2] && urlParts[2].endsWith('.github.io')) {
+                userName = urlParts[2].split('.')[0];
+                repoName = urlParts[3] || userName; // user.github.io/ -> repoName = user, user.github.io/repo -> repoName = repo
+            } 
+            // GitHub 저장소 직접 접근 주소 (예: https://github.com/user/repo/blob/main/index.html)
+            else if (urlParts[2] === 'github.com' && urlParts[3] && urlParts[4]) {
+                userName = urlParts[3];
+                repoName = urlParts[4];
+            } else {
+                // 로컬 파일 등, GitHub Pages/Repo 형태가 아닌 경우 링크 생성 생략
+                const indexLinksDiv = document.getElementById('indexSourceLinks');
+                if (indexLinksDiv) {
+                    indexLinksDiv.innerHTML = '로컬 환경 또는 비 GitHub Pages/Repo 주소에서는 소스코드 링크를 생성할 수 없습니다.';
                 }
-            }
-            // user.github.io 호스팅일 경우 repoName이 없을 수 있음. 이 경우 repoName은 userName과 동일.
-            if (!repoName && urlParts[2].endsWith('.github.io')) {
-                repoName = userName; // user.github.io -> repoName = user
-            }
-            if (!repoName) { // Fallback for very specific paths or local files
-                // 로컬 파일 등에서 실행될 경우 링크 생성을 생략
-                document.getElementById('githubSourceLinks').innerHTML = '로컬 환경에서는 소스코드 링크를 생성할 수 없습니다.';
+                const hashTxtCommitLinkDiv = document.getElementById('hashTxtCommitLink');
+                if (hashTxtCommitLinkDiv) {
+                     hashTxtCommitLinkDiv.innerHTML = ''; // hash.txt 옆 링크도 지움
+                }
                 return;
             }
 
-            const githubViewLink = `https://github.com/${userName}/${repoName}/blob/main/index.html`;
-            const githubRawLink = `https://raw.githubusercontent.com/${userName}/${repoName}/main/index.html`;
+            const branch = 'main'; // 기본 브랜치 이름 (필요시 변경 가능)
+            const fileName = 'index.html';
+            const hashTxtFileName = 'hash.txt';
 
-            const linkContainer = document.getElementById('githubSourceLinks');
-            linkContainer.innerHTML = `
-                <a href="${githubViewLink}" target="_blank">GitHub에서 보기</a> |
-                <a href="${githubRawLink}" target="_blank">Raw 코드 직접 보기</a>
-            `;
+            // --- index.html 관련 링크 ---
+            const githubViewLink = `https://github.com/${userName}/${repoName}/blob/${branch}/${fileName}`;
+            const githubRawLink = `https://github.io/${userName}/${repoName}/${fileName}`; // GitHub Pages 호스팅 기반 Raw 링크
+            const githubCommitLink = `https://github.com/${userName}/${repoName}/commits/${branch}/${fileName}`;
+
+            const indexLinksDiv = document.getElementById('indexSourceLinks');
+            if (indexLinksDiv) {
+                indexLinksDiv.innerHTML = `
+                    <a href="${githubViewLink}" target="_blank">GitHub에서 보기</a> |
+                    <a href="${githubRawLink}" target="_blank">Raw 코드 직접 보기</a> |
+                    <a href="${githubCommitLink}" target="_blank">수정 이력 확인</a>
+                `;
+            }
+
+            // --- hash.txt 관련 링크 ---
+            const hashTxtCommitLink = `https://github.com/${userName}/${repoName}/commits/${branch}/${hashTxtFileName}`;
+            const hashTxtCommitLinkDiv = document.getElementById('hashTxtCommitLink');
+            if (hashTxtCommitLinkDiv) {
+                hashTxtCommitLinkDiv.innerHTML = `
+                    (<a href="${hashTxtCommitLink}" target="_blank">수정 이력 확인</a>)
+                `;
+            }
         }
 
 
         // 페이지 로드 시 첫 번째 탭 열기 및 GitHub 링크 생성
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelector('.tablinks.active').click();
-            generateGitHubSourceLinks(); // GitHub 소스코드 링크 생성 함수 호출
+            generateGitHubLinks(); // GitHub 소스코드 및 파일 이력 링크 생성 함수 호출
         });
     </script>
 </body>
