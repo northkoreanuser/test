@@ -25,7 +25,7 @@
         .source-links, .file-links { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 0.9em; }
         .source-links a, .file-links a { color: #0366d6; text-decoration: none; margin: 0 5px; } /* 간격 조정 */
         .source-links a:hover, .file-links a:hover { text-decoration: underline; }
-        .file-info-container { display: inline-block; margin-left: 5px; font-size: 0.9em; color: #888; } /* hash.txt 관련 정보 컨테이너 */
+        .file-info-container { display: inline-block; margin-left: 5px; font-size: 0.9em; color: #888; } /* email.txt 관련 정보 컨테이너 */
 
         /* 토스트 메시지 CSS */
         .toast-message {
@@ -145,7 +145,7 @@
 
     <script>
         // --- 전역 변수 설정 ---
-        const HASH_FILE_NAME = 'e-mail.txt'; // hash.txt 파일 이름을 변수로 정의
+        const HASH_FILE_NAME = 'email.txt'; // email.txt 파일 이름을 변수로 정의
 
         // --- 유틸리티 함수 ---
         function setCookie(name, value, days) {
@@ -244,8 +244,8 @@
                 const userHash = await generateSHA512(email);
                 userHashDisplay.value = userHash; // 해시 값을 입력 필드에 표시
 
-                // hash.txt를 Raw URL로 Fetch
-                const hashTxtRawLink = document.getElementById('hashTxtLink_checkTab').querySelector('a').href; // 현재 페이지에 삽입된 hash.txt Raw 링크를 가져옴
+                // email.txt를 Raw URL로 Fetch
+                const hashTxtRawLink = document.getElementById('hashTxtLink_checkTab').querySelector('a').href; // 현재 페이지에 삽입된 email.txt Raw 링크를 가져옴
                 const response = await fetch(hashTxtRawLink); // Raw URL로 fetch
                 if (!response.ok) {
                     throw new Error("응모 해시 목록을 불러올 수 없습니다. (Network Error or File Not Found)");
@@ -262,7 +262,7 @@
                         ${found ? '✅ 귀하의 해시가 응모 목록에 있습니다.' : '❌ 귀하의 해시가 응모 목록에 없습니다.'}
                     </p>
                 `;
-                // 당첨자 확인 결과 내 중첩된 hash.txt 링크 (없을 경우)
+                // 당첨자 확인 결과 내 중첩된 email.txt 링크 (없을 경우)
                 if (!found) {
                     hashVerificationResult.innerHTML += `
                         <p style="font-size: 0.95em; margin-top: 15px; color: #888;">
@@ -305,8 +305,8 @@
                 let winnerHash = getCookie('lastWinnerHash');
                 let isLoadedFromCookie = false;
 
-                // hash.txt를 Raw URL로 Fetch
-                const hashTxtRawLink = document.getElementById('hashTxtLink_drawTab').querySelector('a').href; // 현재 페이지에 삽입된 hash.txt Raw 링크를 가져옴
+                // email.txt를 Raw URL로 Fetch
+                const hashTxtRawLink = document.getElementById('hashTxtLink_drawTab').querySelector('a').href; // 현재 페이지에 삽입된 email.txt Raw 링크를 가져옴
                 const response = await fetch(hashTxtRawLink); // Raw URL로 fetch
                 if (!response.ok) {
                     throw new Error("응모 해시 목록을 불러올 수 없습니다. (Network Error or File Not Found)");
@@ -422,7 +422,7 @@
                 if (indexLinksDiv) {
                     indexLinksDiv.innerHTML = '로컬 환경 또는 비 GitHub Pages/Repo 주소에서는 소스코드 링크를 생성할 수 없습니다.';
                 }
-                // hash.txt 관련 링크들도 비활성화
+                // email.txt 관련 링크들도 비활성화
                 const hashTxtLinkDraw = document.getElementById('hashTxtLink_drawTab');
                 if (hashTxtLinkDraw) hashTxtLinkDraw.innerHTML = HASH_FILE_NAME; // 변수 사용
                 const hashTxtCommitLinkDraw = document.getElementById('hashTxtCommitLink_drawTab');
@@ -443,7 +443,7 @@
                 const hashTxtCommitLinkCheckNestedFound = document.getElementById('hashTxtCommitLink_checkTab_nested_found');
                 if (hashTxtCommitLinkCheckNestedFound) hashTxtCommitLinkCheckNestedFound.innerHTML = '';
 
-                // 조작된 추첨인가요? 섹션의 hash.txt 이름 업데이트
+                // 조작된 추첨인가요? 섹션의 email.txt 이름 업데이트
                 document.querySelectorAll('.hash-txt-name').forEach(el => {
                     el.innerHTML = `<strong>${HASH_FILE_NAME}</strong>`;
                 });
@@ -452,7 +452,7 @@
 
             const branch = 'main'; // 기본 브랜치 이름 (필요시 변경 가능)
             const indexFileName = 'index.html';
-            // const hashTxtFileName = 'hash.txt'; // HASH_FILE_NAME 전역 변수 사용
+            // const hashTxtFileName = 'email.txt'; // HASH_FILE_NAME 전역 변수 사용
 
             // --- index.html 관련 링크 ---
             const githubViewLink = `https://github.com/${userName}/${repoName}/blob/${branch}/${indexFileName}`;
@@ -468,7 +468,7 @@
                 `;
             }
 
-            // --- hash.txt 관련 링크 (기본 링크를 Raw URL로 교체) ---
+            // --- email.txt 관련 링크 (기본 링크를 Raw URL로 교체) ---
             const hashTxtRawUrl = `https://raw.githubusercontent.com/${userName}/${repoName}/refs/heads/${branch}/${HASH_FILE_NAME}`; // 변수 사용
             const hashTxtCommitLink = `https://github.com/${userName}/${repoName}/commits/${branch}/${HASH_FILE_NAME}`; // 변수 사용
             
@@ -477,31 +477,31 @@
             const hashTxtMainLinkHtmlBold = `<a href="${hashTxtRawUrl}" target="_blank" style="color: #4CAF50; text-decoration: underline; font-weight: bold;"><strong>${HASH_FILE_NAME} 파일</strong></a>`; // 변수 사용 + 볼드 스타일 유지
             const hashTxtCommitLinkHtml = `(<a href="${hashTxtCommitLink}" target="_blank">수정 이력 확인</a>)`;
 
-            // 추첨 탭의 hash.txt 링크
+            // 추첨 탭의 email.txt 링크
             const hashTxtLinkDraw = document.getElementById('hashTxtLink_drawTab');
             if (hashTxtLinkDraw) hashTxtLinkDraw.innerHTML = hashTxtMainLinkHtml;
             const hashTxtCommitLinkDraw = document.getElementById('hashTxtCommitLink_drawTab');
             if (hashTxtCommitLinkDraw) hashTxtCommitLinkDraw.innerHTML = hashTxtCommitLinkHtml;
 
-            // 당첨자 확인 탭의 hash.txt 링크 (메인 설명)
+            // 당첨자 확인 탭의 email.txt 링크 (메인 설명)
             const hashTxtLinkCheck = document.getElementById('hashTxtLink_checkTab');
             if (hashTxtLinkCheck) hashTxtLinkCheck.innerHTML = hashTxtMainLinkHtmlBold;
             const hashTxtCommitLinkCheck = document.getElementById('hashTxtCommitLink_checkTab');
             if (hashTxtCommitLinkCheck) hashTxtCommitLinkCheck.innerHTML = hashTxtCommitLinkHtml;
 
-            // 당첨자 확인 결과 내 중첩된 hash.txt 링크 (없을 경우)
+            // 당첨자 확인 결과 내 중첩된 email.txt 링크 (없을 경우)
             const hashTxtLinkCheckNested = document.getElementById('hashTxtLink_checkTab_nested');
             if (hashTxtLinkCheckNested) hashTxtLinkCheckNested.innerHTML = hashTxtMainLinkHtmlBold;
             const hashTxtCommitLinkCheckNested = document.getElementById('hashTxtCommitLink_checkTab_nested');
             if (hashTxtCommitLinkCheckNested) hashTxtCommitLinkCheckNested.innerHTML = hashTxtCommitLinkHtml;
 
-            // 당첨자 확인 결과 내 중첩된 hash.txt 링크 (있을 경우)
+            // 당첨자 확인 결과 내 중첩된 email.txt 링크 (있을 경우)
             const hashTxtLinkCheckNestedFound = document.getElementById('hashTxtLink_checkTab_nested_found');
             if (hashTxtLinkCheckNestedFound) hashTxtLinkCheckNestedFound.innerHTML = hashTxtMainLinkHtml; // 볼드 스타일 제외
             const hashTxtCommitLinkCheckNestedFound = document.getElementById('hashTxtCommitLink_checkTab_nested_found');
             if (hashTxtCommitLinkCheckNestedFound) hashTxtCommitLinkCheckNestedFound.innerHTML = hashTxtCommitLinkHtml;
 
-            // 조작된 추첨인가요? 섹션의 hash.txt 이름 업데이트
+            // 조작된 추첨인가요? 섹션의 email.txt 이름 업데이트
             document.querySelectorAll('.hash-txt-name').forEach(el => {
                 el.innerHTML = `<strong>${HASH_FILE_NAME}</strong>`; // <strong> 태그 사용
             });
