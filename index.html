@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>해시 추첨 시스템</title>
+    <style>
+        /* 기존 CSS 코드는 동일하게 유지 */
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+        .tab { overflow: hidden; border: 1px solid #ccc; background-color: #f1f1f1; border-radius: 4px 4px 0 0; }
+        .tab button { background-color: inherit; float: left; border: none; outline: none; cursor: pointer; padding: 14px 16px; transition: 0.3s; font-size: 16px; }
+        .tab button:hover { background-color: #ddd; }
+        .tab button.active { background-color: #4CAF50; color: white; }
+        .tabcontent { display: none; padding: 20px; border: 1px solid #ccc; border-top: none; border-radius: 0 0 4px 4px; animation: fadeEffect 1s; }
+        @keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }
+        button.action-btn { background-color: #4CAF50; color: white; border: none; padding: 10px 15px; margin: 10px 2px; cursor: pointer; border-radius: 4px; }
+        button.action-btn:hover { background-color: #45a049; }
+        button.danger-btn { background-color: #f44336; color: white; border: none; padding: 10px 15px; margin: 10px 2px; cursor: pointer; border-radius: 4px; }
+        button.danger-btn:hover { background-color: #da190b; }
+        input[type="email"] { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; border: 2px solid #ccc; border-radius: 4px; }
+        .result-box { margin-top: 20px; padding: 15px; border-radius: 4px; background-color: #f8f8f8; }
+        #hashLoading, #drawLoading { display: none; color: #4CAF50; margin: 10px 0; }
+        .source-links { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 0.9em; }
+        .source-links a { color: #0366d6; text-decoration: none; margin: 0 10px; }
+        .source-links a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>해시 추첨 시스템</h1>
+
+    <div class="tab">
+        <button class="tablinks active" onclick="openTab(event, 'drawTab')">당첨자 확인</button>
+        <button class="tablinks" onclick="openTab(event, 'checkTab')">이메일 확인</button>
+    </div>
+
+    <div id="drawTab" class="tabcontent" style="display: block;">
+        <button class="action-btn" onclick="drawWinner()">당첨자 추첨 실행</button>
+        <button class="danger-btn" onclick="clearWinnerHistory()">추첨 이력 삭제 (테스트용)</button>
+        <div id="drawLoading">추첨 진행 중...</div>
+        <div id="result" class="result-box"></div>
+        <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
+            * 모든 추첨 과정은 공개된 <a href="hash.txt" target="_blank">hash.txt</a> 파일 데이터를 기반으로 합니다.
+            이 파일은 GitHub 커밋 이력을 통해 조작 불가능함을 보증합니다.
+            **`test@test.com` 이메일은 시스템 시연을 위한 것으로, 실제 추첨 대상에서는 자동으로 제외됩니다.**
+        </p>
+    </div>
+
+    <div id="checkTab" class="tabcontent">
+        <input type="email" id="emailInput" value="test@test.com" placeholder="이메일을 입력하세요">
+        <button class="action-btn" onclick="generateAndCheckHash()">내 이메일 해시 확인</button>
+        <div id="hashLoading">해시 생성 및 확인 중...</div>
+        <div id="hashResult" class="result-box"></div>
+        <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
+            💡 이메일 해시를 생성한 후, 투명한 응모 기록을 위해 <br>
+            <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline; font-weight: bold;">hash.txt 파일</a>에서 직접 <span style="font-weight: bold; color: #e94560;">Ctrl+F (Mac: Cmd+F)</span>를 눌러 <br>
+            생성된 해시가 목록에 있는지 검색하여 확인해 볼 수 있습니다.
+        </p>
+    </div>
+
+    <div class="source-links">
+        <p>
+            이 페이지의 소스코드 투명성을 확인하세요:
+            <span id="githubSourceLinks"></span>
+        </p>
+    </div>
+
+    <script>
+        // --- 유틸리티 함수 ---
+        function setCookie(name, value, days) {
+            let expires = "";
+            if (days) {
+                let date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+        }
+
+        function getCookie(name) {
+            let nameEQ = name + "=";
+            let ca = document.cookie.split(';');
+            for(let i=0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        function eraseCookie(name) {
+            document.cookie = name + '=; Max-Age=-99999999; path=/;';
+        }
+
+        // --- 해시 및 추첨 로직 ---
+
+        // SHA-512 해시 생성 함수
+        async function generateSHA512(message) {
+            try {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(message);
+                const hashBuffer = await crypto.subtle.digest('SHA-512', data);
+                return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch (error) {
+                console.error("SHA-512 오류:", error);
+                throw new Error("해시 생성에 실패했습니다. 이 기능을 사용하려면 HTTPS 환경이 필요합니다.");
+            }
+        }
+
+        // test@test.com 의 해시를 미리 계산하여 저장
+        let TEST_EMAIL_HASH = '';
+        (async () => {
+            try {
+                TEST_EMAIL_HASH = await generateSHA512('test@test.com');
+            } catch (e) {
+                console.error("테스트 이메일 해시 생성 실패:", e);
+            }
+        })();
+
+
+        // 해시 생성 및 확인 함수
+        async function generateAndCheckHash() {
+            const email = document.getElementById('emailInput').value.trim();
+            if (!email) {
+                alert('이메일을 입력해주세요.');
+                return;
+            }
+
+            const loader = document.getElementById('hashLoading');
+            const resultDiv = document.getElementById('hashResult');
+
+            loader.style.display = 'block';
+            resultDiv.innerHTML = '';
+
+            try {
+                const userHash = await generateSHA512(email);
+
+                const response = await fetch('hash.txt');
+                if (!response.ok) {
+                    throw new Error("응모 해시 목록을 불러올 수 없습니다.");
+                }
+                const hashesInFile = (await response.text()).split('\n').map(h => h.trim()).filter(h => h);
+
+                let found = false;
+                if (hashesInFile.includes(userHash)) {
+                    found = true;
+                }
+
+                resultDiv.innerHTML = `
+                    <p><strong>입력된 이메일의 해시:</strong> ${userHash}</p>
+                    <p style="color: ${found ? 'green' : 'red'}; font-weight: bold;">
+                        ${found ? '✅ 귀하의 해시가 응모 목록에 있습니다.' : '❌ 귀하의 해시가 응모 목록에 없습니다.'}
+                    </p>
+                `;
+                if (!found) {
+                    resultDiv.innerHTML += `
+                        <p style="font-size: 0.95em; margin-top: 15px; color: #888;">
+                            혹시 오타가 없는지 확인하거나, 모든 응모 기록이 담긴 <br>
+                            <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline; font-weight: bold;">hash.txt 파일</a>을 직접 열어 <br>
+                            <span style="font-weight: bold; color: #e94560;">Ctrl+F (Mac: Cmd+F)</span>로 생성된 해시를 검색하여 확인해 보세요.
+                        </p>
+                    `;
+                } else {
+                     resultDiv.innerHTML += `
+                        <p style="font-size: 0.85em; margin-top: 10px; color: #a0a0a0;">
+                            더 자세한 확인을 원하시면 <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline;">hash.txt 파일</a>을 열어 직접 검색할 수 있습니다.
+                        </p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color:red;">오류 발생: ${error.message}</p>`;
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // 당첨자 추첨 함수
+        async function drawWinner() {
+            const loader = document.getElementById('drawLoading');
+            const resultDiv = document.getElementById('result');
+
+            loader.style.display = 'block';
+            resultDiv.innerHTML = '';
+
+            try {
+                let winnerHash = getCookie('lastWinnerHash');
+                let isLoadedFromCookie = false;
+
+                const response = await fetch('hash.txt');
+                if (!response.ok) {
+                    throw new Error("응모 해시 목록을 불러올 수 없습니다.");
+                }
+                let hashes = (await response.text()).split('\n').map(h => h.trim()).filter(h => h);
+
+                if (TEST_EMAIL_HASH) {
+                    hashes = hashes.filter(h => h !== TEST_EMAIL_HASH);
+                }
+                
+                if (!hashes.length) {
+                    throw new Error("추첨 가능한 해시가 없습니다. (유효한 응모자가 없는 경우)");
+                }
+
+                const totalEligibleHashes = hashes.length;
+
+                if (!winnerHash || !hashes.includes(winnerHash)) {
+                    if (winnerHash && !hashes.includes(winnerHash)) {
+                        console.warn("쿠키에 저장된 당첨 해시가 현재 추첨 가능한 목록에 없어 새로운 추첨을 진행합니다.");
+                    }
+                    const randomIndex = Math.floor(Math.random() * hashes.length);
+                    winnerHash = hashes[randomIndex];
+                    setCookie('lastWinnerHash', winnerHash, 7);
+                } else {
+                    isLoadedFromCookie = true;
+                }
+
+                resultDiv.innerHTML = `
+                    <p><strong>총 응모 해시 수:</strong> ${totalEligibleHashes}개</p>
+                    <p style="font-size: 1.2em; color: #4CAF50; font-weight: bold;">
+                        ✨ 당첨 해시: ${winnerHash} ✨
+                    </p>
+                    <p style="margin-top: 15px;">
+                        당첨되셨다면, 위 해시와 일치하는 이메일로 연락주세요: <strong style="color: #e94560;">winner@example.com</strong>
+                    </p>
+                    <p style="font-size: 0.9em; color: #888;">
+                        (참고: 당첨 확인은 '이메일 확인' 탭에서 자신의 이메일 해시를 생성하여 직접 비교해 볼 수 있습니다.)
+                    </p>
+                `;
+                if (isLoadedFromCookie) {
+                    resultDiv.innerHTML += '<p style="color: blue; font-size: 0.85em; margin-top: 10px;">(이전 추첨 결과가 쿠키에서 로드되었습니다.)</p>';
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color:red;">${error.message}</p>`;
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // 추첨 이력 제거 함수
+        function clearWinnerHistory() {
+            if (confirm("정말 추첨 이력을 삭제하시겠습니까? (로컬 브라우저 쿠키에서만 삭제되며, 새로고침 시 다시 추첨 가능)")) {
+                eraseCookie('lastWinnerHash');
+                document.getElementById('result').innerHTML = '<p style="color: green;">추첨 이력이 삭제되었습니다. 이제 새로운 추첨을 실행할 수 있습니다.</p>';
+                console.log("추첨 이력 쿠키가 삭제되었습니다.");
+            }
+        }
+
+        // 탭 전환 함수
+        function openTab(evt, tabName) {
+            document.querySelectorAll('.tabcontent').forEach(tab => tab.style.display = 'none');
+            document.querySelectorAll('.tablinks').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).style.display = 'block';
+            evt.currentTarget.classList.add('active');
+        }
+
+        // GitHub 소스코드 링크 생성 함수
+        function generateGitHubSourceLinks() {
+            const currentUrl = window.location.href;
+            // 예시 URL: https://githubkorean.github.io/html/index.html
+            const urlParts = currentUrl.split('/');
+            // githubkorean.github.io 에서 'githubkorean' 추출
+            const userName = urlParts[2].split('.')[0]; 
+            // html/index.html 에서 'html' 추출 (GitHub Pages 프로젝트 이름)
+            // 주의: user.github.io 형태일 경우 이 부분이 달라질 수 있으므로, 
+            // 경로에서 두 번째 부분을 찾아서 사용 (repo 이름)
+            let repoName = '';
+            for (let i = 3; i < urlParts.length; i++) {
+                if (urlParts[i] && urlParts[i] !== 'index.html') {
+                    repoName = urlParts[i];
+                    break;
+                }
+            }
+            // user.github.io 호스팅일 경우 repoName이 없을 수 있음. 이 경우 repoName은 userName과 동일.
+            if (!repoName && urlParts[2].endsWith('.github.io')) {
+                repoName = userName; // user.github.io -> repoName = user
+            }
+            if (!repoName) { // Fallback for very specific paths or local files
+                // 로컬 파일 등에서 실행될 경우 링크 생성을 생략
+                document.getElementById('githubSourceLinks').innerHTML = '로컬 환경에서는 소스코드 링크를 생성할 수 없습니다.';
+                return;
+            }
+
+            const githubViewLink = `https://github.com/${userName}/${repoName}/blob/main/index.html`;
+            const githubRawLink = `https://raw.githubusercontent.com/${userName}/${repoName}/main/index.html`;
+
+            const linkContainer = document.getElementById('githubSourceLinks');
+            linkContainer.innerHTML = `
+                <a href="${githubViewLink}" target="_blank">GitHub에서 보기</a> |
+                <a href="${githubRawLink}" target="_blank">Raw 코드 직접 보기</a>
+            `;
+        }
+
+
+        // 페이지 로드 시 첫 번째 탭 열기 및 GitHub 링크 생성
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelector('.tablinks.active').click();
+            generateGitHubSourceLinks(); // GitHub 소스코드 링크 생성 함수 호출
+        });
+    </script>
+</body>
+</html>
