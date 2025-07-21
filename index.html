@@ -25,7 +25,8 @@
         .source-links, .file-links { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 0.9em; }
         .source-links a, .file-links a { color: #0366d6; text-decoration: none; margin: 0 5px; } /* 간격 조정 */
         .source-links a:hover, .file-links a:hover { text-decoration: underline; }
-        .hash-file-info { display: inline-block; } /* hash.txt 관련 링크들을 한 줄에 표시 */
+        .file-info-container { display: inline-block; margin-left: 10px; font-size: 0.9em; color: #888; } /* hash.txt 관련 정보 컨테이너 */
+        .hash-raw-url { display: block; word-break: break-all; margin-top: 5px; font-family: monospace; } /* Raw URL 텍스트 스타일 */
     </style>
 </head>
 <body>
@@ -43,9 +44,9 @@
         <div id="result" class="result-box"></div>
         <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
             * 모든 추첨 과정은 공개된 
-            <span class="hash-file-info">
-                <a href="hash.txt" target="_blank">hash.txt</a> 
-                <span id="hashTxtRawLink_drawTab"></span> <span id="hashTxtCommitLink_drawTab"></span> </span>
+            <a href="hash.txt" target="_blank">hash.txt</a> 
+            <span class="file-info-container">
+                <span id="hashTxtCommitLink_drawTab"></span> <span id="hashTxtRawUrl_drawTab"></span> </span>
             파일 데이터를 기반으로 합니다.
             이 파일은 GitHub 커밋 이력을 통해 조작 불가능함을 보증합니다.
             **`test@test.com` 이메일은 시스템 시연을 위한 것으로, 실제 추첨 대상에서는 자동으로 제외됩니다.**
@@ -66,9 +67,9 @@
         </div>
         <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
             💡 이메일 해시를 생성한 후, 투명한 응모 기록을 위해 <br>
-            <span class="hash-file-info">
-                <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline; font-weight: bold;">hash.txt 파일</a>
-                <span id="hashTxtRawLink_checkTab"></span> <span id="hashTxtCommitLink_checkTab"></span> </span>
+            <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline; font-weight: bold;">hash.txt 파일</a>
+            <span class="file-info-container">
+                <span id="hashTxtCommitLink_checkTab"></span> <span id="hashTxtRawUrl_checkTab"></span> </span>
             에서 직접 <span style="font-weight: bold; color: #e94560;">Ctrl+F (Mac: Cmd+F)</span>를 눌러 <br>
             생성된 해시가 목록에 있는지 검색하여 확인해 볼 수 있습니다.
         </p>
@@ -189,9 +190,9 @@
                     hashVerificationResult.innerHTML += `
                         <p style="font-size: 0.95em; margin-top: 15px; color: #888;">
                             혹시 오타가 없는지 확인하거나, 모든 응모 기록이 담긴 <br>
-                            <span class="hash-file-info">
-                                <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline; font-weight: bold;">hash.txt 파일</a>
-                                <span id="hashTxtRawLink_checkTab_nested"></span> <span id="hashTxtCommitLink_checkTab_nested"></span> </span>
+                            <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline; font-weight: bold;">hash.txt 파일</a>
+                            <span class="file-info-container">
+                                <span id="hashTxtCommitLink_checkTab_nested"></span> <span id="hashTxtRawUrl_checkTab_nested"></span> </span>
                             에서 직접 <span style="font-weight: bold; color: #e94560;">Ctrl+F (Mac: Cmd+F)</span>를 눌러 <br>
                             생성된 해시를 검색하여 확인해 보세요.
                         </p>
@@ -200,9 +201,9 @@
                      hashVerificationResult.innerHTML += `
                         <p style="font-size: 0.85em; margin-top: 10px; color: #a0a0a0;">
                             더 자세한 확인을 원하시면 
-                            <span class="hash-file-info">
-                                <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline;">hash.txt 파일</a>
-                                <span id="hashTxtRawLink_checkTab_nested_found"></span> <span id="hashTxtCommitLink_checkTab_nested_found"></span> </span>
+                            <a href="hash.txt" target="_blank" style="color: #4CAF50; text-decoration: underline;">hash.txt 파일</a>
+                            <span class="file-info-container">
+                                <span id="hashTxtCommitLink_checkTab_nested_found"></span> <span id="hashTxtRawUrl_checkTab_nested_found"></span> </span>
                             을 열어 직접 검색할 수 있습니다.
                         </p>
                     `;
@@ -327,22 +328,25 @@
                     indexLinksDiv.innerHTML = '로컬 환경 또는 비 GitHub Pages/Repo 주소에서는 소스코드 링크를 생성할 수 없습니다.';
                 }
                 // hash.txt 관련 링크들도 비활성화
-                const hashTxtRawLinkDraw = document.getElementById('hashTxtRawLink_drawTab');
-                if (hashTxtRawLinkDraw) hashTxtRawLinkDraw.innerHTML = '';
                 const hashTxtCommitLinkDraw = document.getElementById('hashTxtCommitLink_drawTab');
                 if (hashTxtCommitLinkDraw) hashTxtCommitLinkDraw.innerHTML = '';
-                const hashTxtRawLinkCheck = document.getElementById('hashTxtRawLink_checkTab');
-                if (hashTxtRawLinkCheck) hashTxtRawLinkCheck.innerHTML = '';
+                const hashTxtRawUrlDraw = document.getElementById('hashTxtRawUrl_drawTab');
+                if (hashTxtRawUrlDraw) hashTxtRawUrlDraw.innerHTML = '';
+
                 const hashTxtCommitLinkCheck = document.getElementById('hashTxtCommitLink_checkTab');
                 if (hashTxtCommitLinkCheck) hashTxtCommitLinkCheck.innerHTML = '';
-                const hashTxtRawLinkCheckNested = document.getElementById('hashTxtRawLink_checkTab_nested');
-                if (hashTxtRawLinkCheckNested) hashTxtRawLinkCheckNested.innerHTML = '';
+                const hashTxtRawUrlCheck = document.getElementById('hashTxtRawUrl_checkTab');
+                if (hashTxtRawUrlCheck) hashTxtRawUrlCheck.innerHTML = '';
+
                 const hashTxtCommitLinkCheckNested = document.getElementById('hashTxtCommitLink_checkTab_nested');
                 if (hashTxtCommitLinkCheckNested) hashTxtCommitLinkCheckNested.innerHTML = '';
-                const hashTxtRawLinkCheckNestedFound = document.getElementById('hashTxtRawLink_checkTab_nested_found');
-                if (hashTxtRawLinkCheckNestedFound) hashTxtRawLinkCheckNestedFound.innerHTML = '';
+                const hashTxtRawUrlCheckNested = document.getElementById('hashTxtRawUrl_checkTab_nested');
+                if (hashTxtRawUrlCheckNested) hashTxtRawUrlCheckNested.innerHTML = '';
+                
                 const hashTxtCommitLinkCheckNestedFound = document.getElementById('hashTxtCommitLink_checkTab_nested_found');
                 if (hashTxtCommitLinkCheckNestedFound) hashTxtCommitLinkCheckNestedFound.innerHTML = '';
+                const hashTxtRawUrlCheckNestedFound = document.getElementById('hashTxtRawUrl_checkTab_nested_found');
+                if (hashTxtRawUrlCheckNestedFound) hashTxtRawUrlCheckNestedFound.innerHTML = '';
                 return;
             }
 
@@ -365,35 +369,35 @@
             }
 
             // --- hash.txt 관련 링크 ---
-            const hashTxtRawLink = `https://raw.githubusercontent.com/${userName}/${repoName}/refs/heads/${branch}/${hashTxtFileName}`; // hash.txt Raw 코드 링크
+            const hashTxtRawUrl = `https://raw.githubusercontent.com/${userName}/${repoName}/refs/heads/${branch}/${hashTxtFileName}`; // hash.txt Raw URL
             const hashTxtCommitLink = `https://github.com/${userName}/${repoName}/commits/${branch}/${hashTxtFileName}`;
             
-            const hashTxtRawLinkHtml = `(<a href="${hashTxtRawLink}" target="_blank">Raw 코드 직접 보기</a>)`;
             const hashTxtCommitLinkHtml = `(<a href="${hashTxtCommitLink}" target="_blank">수정 이력 확인</a>)`;
+            const hashTxtRawUrlText = `(Raw 주소: <span class="hash-raw-url">${hashTxtRawUrl}</span>)`;
 
-            // 당첨자 확인 탭의 hash.txt 옆 링크
-            const hashTxtRawLinkDraw = document.getElementById('hashTxtRawLink_drawTab');
-            if (hashTxtRawLinkDraw) hashTxtRawLinkDraw.innerHTML = hashTxtRawLinkHtml;
+            // 당첨자 확인 탭의 hash.txt 옆 정보
             const hashTxtCommitLinkDraw = document.getElementById('hashTxtCommitLink_drawTab');
             if (hashTxtCommitLinkDraw) hashTxtCommitLinkDraw.innerHTML = hashTxtCommitLinkHtml;
+            const hashTxtRawUrlDraw = document.getElementById('hashTxtRawUrl_drawTab');
+            if (hashTxtRawUrlDraw) hashTxtRawUrlDraw.innerHTML = hashTxtRawUrlText;
 
-            // 이메일 확인 탭의 hash.txt 옆 링크 (메인 설명)
-            const hashTxtRawLinkCheck = document.getElementById('hashTxtRawLink_checkTab');
-            if (hashTxtRawLinkCheck) hashTxtRawLinkCheck.innerHTML = hashTxtRawLinkHtml;
+            // 이메일 확인 탭의 hash.txt 옆 정보 (메인 설명)
             const hashTxtCommitLinkCheck = document.getElementById('hashTxtCommitLink_checkTab');
             if (hashTxtCommitLinkCheck) hashTxtCommitLinkCheck.innerHTML = hashTxtCommitLinkHtml;
+            const hashTxtRawUrlCheck = document.getElementById('hashTxtRawUrl_checkTab');
+            if (hashTxtRawUrlCheck) hashTxtRawUrlCheck.innerHTML = hashTxtRawUrlText;
 
-            // 이메일 확인 결과 내 중첩된 hash.txt 링크 (없을 경우)
-            const hashTxtRawLinkCheckNested = document.getElementById('hashTxtRawLink_checkTab_nested');
-            if (hashTxtRawLinkCheckNested) hashTxtRawLinkCheckNested.innerHTML = hashTxtRawLinkHtml;
+            // 이메일 확인 결과 내 중첩된 hash.txt 정보 (없을 경우)
             const hashTxtCommitLinkCheckNested = document.getElementById('hashTxtCommitLink_checkTab_nested');
             if (hashTxtCommitLinkCheckNested) hashTxtCommitLinkCheckNested.innerHTML = hashTxtCommitLinkHtml;
+            const hashTxtRawUrlCheckNested = document.getElementById('hashTxtRawUrl_checkTab_nested');
+            if (hashTxtRawUrlCheckNested) hashTxtRawUrlCheckNested.innerHTML = hashTxtRawUrlText;
 
-            // 이메일 확인 결과 내 중첩된 hash.txt 링크 (있을 경우)
-            const hashTxtRawLinkCheckNestedFound = document.getElementById('hashTxtRawLink_checkTab_nested_found');
-            if (hashTxtRawLinkCheckNestedFound) hashTxtRawLinkCheckNestedFound.innerHTML = hashTxtRawLinkHtml;
+            // 이메일 확인 결과 내 중첩된 hash.txt 정보 (있을 경우)
             const hashTxtCommitLinkCheckNestedFound = document.getElementById('hashTxtCommitLink_checkTab_nested_found');
             if (hashTxtCommitLinkCheckNestedFound) hashTxtCommitLinkCheckNestedFound.innerHTML = hashTxtCommitLinkHtml;
+            const hashTxtRawUrlCheckNestedFound = document.getElementById('hashTxtRawUrl_checkTab_nested_found');
+            if (hashTxtRawUrlCheckNestedFound) hashTxtRawUrlCheckNestedFound.innerHTML = hashTxtRawUrlText;
         }
 
 
