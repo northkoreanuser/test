@@ -346,7 +346,7 @@
             const githubViewLink = `https://github.com/${userName}/${repoName}/blob/${branch}/${indexFileName}`;
             let githubRawLink = '';
             if (baseUrl) { // GitHub Pages 호스팅인 경우에만 Raw 링크 생성
-                githubRawLink = `<a href="${baseUrl}/${indexFileName}" target="_blank">Raw 코드 직접 보기</a> |`;
+                githubRawLink = `<a href="index.html" target="_blank">Raw 코드 직접 보기</a> |`;
             }
             const githubCommitLink = `https://github.com/${userName}/${repoName}/commits/${branch}/${indexFileName}`;
 
