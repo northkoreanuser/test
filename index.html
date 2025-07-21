@@ -32,8 +32,8 @@
     <h1>해시 추첨 시스템</h1>
 
     <div class="tab">
-        <button class="tablinks active" onclick="openTab(event, 'drawTab')">당첨자 확인</button>
-        <button class="tablinks" onclick="openTab(event, 'checkTab')">이메일 확인</button>
+        <button class="tablinks active" onclick="openTab(event, 'drawTab')">추첨</button>
+        <button class="tablinks" onclick="openTab(event, 'checkTab')">당첨자 확인</button>
     </div>
 
     <div id="drawTab" class="tabcontent" style="display: block;">
@@ -46,7 +46,8 @@
             <span id="hashTxtLink_drawTab"></span> <span class="file-info-container">
                 <span id="hashTxtCommitLink_drawTab"></span> </span>
             파일 데이터를 기반으로 합니다.
-            이 파일은 GitHub 커밋 이력을 통해 조작 불가능함을 보증합니다.
+            이 파일은 GitHub 커밋 이력을 통해 조작 불가능함을 보증합니다.<br>
+            **추첨된 해시는 <a href="https://www.youtube.com/channel/UCG6kyr-hb_1vRaxYstH_8xw/posts" target="_blank" style="color: #4CAF50; text-decoration: underline; font-weight: bold;">이 유튜브 커뮤니티 게시글</a>에서 확인하시고, '당첨자 확인' 탭에서 본인의 해시를 생성하여 비교해 보세요.**
             **`test@test.com` 이메일은 시스템 시연을 위한 것으로, 실제 추첨 대상에서는 자동으로 제외됩니다.**
         </p>
     </div>
@@ -260,18 +261,12 @@
                 resultDiv.innerHTML = `
                     <p><strong>총 응모 해시 수:</strong> ${totalEligibleHashes}개</p>
                     <p style="font-size: 1.2em; color: #4CAF50; font-weight: bold;">
-                        ✨ 당첨 해시:
+                        ✨ 추첨된 해시:
                     </p>
                     <div style="display: flex; align-items: center;">
                         <input type="text" id="winnerHashDisplay" class="hash-display" value="${winnerHash}" readonly>
                         <button class="copy-btn" onclick="copyToClipboard('winnerHashDisplay')">복사</button>
                     </div>
-                    <p style="margin-top: 15px;">
-                        당첨되셨다면, 위 해시와 일치하는 이메일로 연락주세요: <strong style="color: #e94560;">winner@example.com</strong>
-                    </p>
-                    <p style="font-size: 0.9em; color: #888;">
-                        (참고: 당첨 확인은 '이메일 확인' 탭에서 자신의 이메일 해시를 생성하여 직접 비교해 볼 수 있습니다.)
-                    </p>
                 `;
                 if (isLoadedFromCookie) {
                     resultDiv.innerHTML += '<p style="color: blue; font-size: 0.85em; margin-top: 10px;">(이전 추첨 결과가 쿠키에서 로드되었습니다.)</p>';
@@ -375,25 +370,25 @@
             const hashTxtMainLinkHtmlBold = `<a href="${hashTxtRawUrl}" target="_blank" style="color: #4CAF50; text-decoration: underline; font-weight: bold;">hash.txt 파일</a>`; // 볼드 스타일 유지
             const hashTxtCommitLinkHtml = `(<a href="${hashTxtCommitLink}" target="_blank">수정 이력 확인</a>)`;
 
-            // 당첨자 확인 탭의 hash.txt 링크
+            // 추첨 탭의 hash.txt 링크
             const hashTxtLinkDraw = document.getElementById('hashTxtLink_drawTab');
             if (hashTxtLinkDraw) hashTxtLinkDraw.innerHTML = hashTxtMainLinkHtml;
             const hashTxtCommitLinkDraw = document.getElementById('hashTxtCommitLink_drawTab');
             if (hashTxtCommitLinkDraw) hashTxtCommitLinkDraw.innerHTML = hashTxtCommitLinkHtml;
 
-            // 이메일 확인 탭의 hash.txt 링크 (메인 설명)
+            // 당첨자 확인 탭의 hash.txt 링크 (메인 설명)
             const hashTxtLinkCheck = document.getElementById('hashTxtLink_checkTab');
             if (hashTxtLinkCheck) hashTxtLinkCheck.innerHTML = hashTxtMainLinkHtmlBold;
             const hashTxtCommitLinkCheck = document.getElementById('hashTxtCommitLink_checkTab');
             if (hashTxtCommitLinkCheck) hashTxtCommitLinkCheck.innerHTML = hashTxtCommitLinkHtml;
 
-            // 이메일 확인 결과 내 중첩된 hash.txt 링크 (없을 경우)
+            // 당첨자 확인 결과 내 중첩된 hash.txt 링크 (없을 경우)
             const hashTxtLinkCheckNested = document.getElementById('hashTxtLink_checkTab_nested');
             if (hashTxtLinkCheckNested) hashTxtLinkCheckNested.innerHTML = hashTxtMainLinkHtmlBold;
             const hashTxtCommitLinkCheckNested = document.getElementById('hashTxtCommitLink_checkTab_nested');
             if (hashTxtCommitLinkCheckNested) hashTxtCommitLinkCheckNested.innerHTML = hashTxtCommitLinkHtml;
 
-            // 이메일 확인 결과 내 중첩된 hash.txt 링크 (있을 경우)
+            // 당첨자 확인 결과 내 중첩된 hash.txt 링크 (있을 경우)
             const hashTxtLinkCheckNestedFound = document.getElementById('hashTxtLink_checkTab_nested_found');
             if (hashTxtLinkCheckNestedFound) hashTxtLinkCheckNestedFound.innerHTML = hashTxtMainLinkHtml; // 볼드 스타일 제외
             const hashTxtCommitLinkCheckNestedFound = document.getElementById('hashTxtCommitLink_checkTab_nested_found');
