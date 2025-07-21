@@ -26,6 +26,36 @@
         .source-links a, .file-links a { color: #0366d6; text-decoration: none; margin: 0 5px; } /* 간격 조정 */
         .source-links a:hover, .file-links a:hover { text-decoration: underline; }
         .file-info-container { display: inline-block; margin-left: 5px; font-size: 0.9em; color: #888; } /* hash.txt 관련 정보 컨테이너 */
+
+        /* 토스트 메시지 CSS */
+        .toast-message {
+            visibility: hidden;
+            min-width: 250px;
+            margin-left: -125px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            bottom: 30px;
+            font-size: 17px;
+            opacity: 0; /* 초기 투명도 0 */
+            transition: visibility 0s, opacity 0.5s linear; /* 부드러운 전환 */
+        }
+
+        .toast-message.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* 복사된 해시 값이 길어질 경우의 스타일 조정 */
+        input[type="text"].hash-display {
+            /* 기존 스타일 유지 */
+            word-break: break-all; /* 긴 해시 값이 잘리지 않고 다음 줄로 넘어갈 수 있도록 */
+        }
     </style>
 </head>
 <body>
@@ -62,7 +92,7 @@
             <p><strong>입력된 이메일의 해시:</strong></p>
             <div style="display: flex; align-items: center;">
                 <input type="text" id="userHashDisplay" class="hash-display" readonly>
-                <button class="copy-btn" onclick="copyToClipboard('userHashDisplay')">복사</button>
+                <button class="copy-btn" onclick="copyToClipboard('userHashDisplay', '해시가 복사되었습니다.')">복사</button>
             </div>
             <p id="hashVerificationResult"></p>
         </div>
@@ -111,10 +141,11 @@
         </p>
     </div>
 
+    <div id="toastMessage" class="toast-message"></div>
 
     <script>
         // --- 전역 변수 설정 ---
-        const HASH_FILE_NAME = 'hash.txt'; // hash.txt 파일 이름을 변수로 정의
+        const HASH_FILE_NAME = 'e-mail.txt'; // hash.txt 파일 이름을 변수로 정의
 
         // --- 유틸리티 함수 ---
         function setCookie(name, value, days) {
@@ -142,19 +173,30 @@
             document.cookie = name + '=; Max-Age=-99999999; path=/';
         }
 
-        // 텍스트를 클립보드에 복사하는 함수
-        function copyToClipboard(elementId) {
+        // 텍스트를 클립보드에 복사하는 함수 (토스트 메시지 사용)
+        function copyToClipboard(elementId, message) {
             const copyText = document.getElementById(elementId);
             copyText.select();
             copyText.setSelectionRange(0, 99999); // 모바일용
             try {
                 document.execCommand("copy");
-                alert("복사되었습니다: " + copyText.value);
+                showToast(message); // 토스트 메시지 표시
             } catch (err) {
                 console.error('클립보드 복사 실패:', err);
                 alert("복사에 실패했습니다. 수동으로 복사해주세요.");
             }
         }
+
+        // 토스트 메시지 표시 함수
+        function showToast(message) {
+            const toast = document.getElementById("toastMessage");
+            toast.textContent = message;
+            toast.className = "toast-message show";
+            setTimeout(function(){ 
+                toast.className = toast.className.replace("show", ""); 
+            }, 3000); // 3초 후 사라짐
+        }
+
 
         // --- 해시 및 추첨 로직 ---
 
@@ -300,7 +342,7 @@
                     </p>
                     <div style="display: flex; align-items: center;">
                         <input type="text" id="winnerHashDisplay" class="hash-display" value="${winnerHash}" readonly>
-                        <button class="copy-btn" onclick="copyToClipboard('winnerHashDisplay')">복사</button>
+                        <button class="copy-btn" onclick="copyToClipboard('winnerHashDisplay', '당첨 해시가 복사되었습니다.')">복사</button>
                     </div>
                 `;
                 if (isLoadedFromCookie) {
@@ -403,7 +445,7 @@
 
                 // 조작된 추첨인가요? 섹션의 hash.txt 이름 업데이트
                 document.querySelectorAll('.hash-txt-name').forEach(el => {
-                    el.textContent = HASH_FILE_NAME;
+                    el.innerHTML = `<strong>${HASH_FILE_NAME}</strong>`;
                 });
                 return;
             }
